@@ -23,7 +23,7 @@ extension RandomAccessFile {
 
 public
 final class RandomAccessFile {
-    public typealias Error = DispatchIOWrapper.Error
+    public typealias FileError = DispatchIOWrapper.FileError
 
     internal let dispatchIO: DispatchIOWrapper
 
@@ -44,7 +44,7 @@ final class RandomAccessFile {
           options: FileOpenOption = [.createIfNotExists, .readAndWrite],
           permission: Permission = [.userRead, .userWrite],
           queue: DispatchQueue = DispatchQueue(label: "RandomAccessFile.DispatchQueue.\(UUID().uuidString)"),
-          cleanupHandler: @escaping (Result<Void, Error>) -> Void)
+          cleanupHandler: @escaping (Result<Void, FileError>) -> Void)
     {
         let io = DispatchIOWrapper(type: .random, filePath: filePath, options: options, permission: permission, queue: queue, cleanupHandler: cleanupHandler)
 
@@ -80,7 +80,7 @@ extension RandomAccessFile {
     func read(offset: Int,
               length: Int,
               progressHandler: @escaping ((Progress) -> Void),
-              completion: @escaping (Result<Data, Error>) -> Void)
+              completion: @escaping (Result<Data, FileError>) -> Void)
     {
         dispatchIO.read(offset: offset, length: length, progressHandler: progressHandler, completion: completion)
     }
@@ -88,7 +88,7 @@ extension RandomAccessFile {
     public
     func read(offset: Int,
               progressHandler: @escaping ((Progress) -> Void),
-              completion: @escaping (Result<Data, Error>) -> Void)
+              completion: @escaping (Result<Data, FileError>) -> Void)
     {
         dispatchIO.read(offset: offset, progressHandler: progressHandler, completion: completion)
     }
@@ -96,14 +96,14 @@ extension RandomAccessFile {
     public
     func read(offset: Int,
               length: Int,
-              completion: @escaping (Result<Data, Error>) -> Void)
+              completion: @escaping (Result<Data, FileError>) -> Void)
     {
         dispatchIO.read(offset: offset, length: length, progressHandler: { _ in }, completion: completion)
     }
 
     public
     func read(offset: Int,
-              completion: @escaping (Result<Data, Error>) -> Void)
+              completion: @escaping (Result<Data, FileError>) -> Void)
     {
         dispatchIO.read(offset: offset, progressHandler: { _ in }, completion: completion)
     }
@@ -114,7 +114,7 @@ extension RandomAccessFile {
     func write(offset: Int,
                data: Data,
                progressHandler: @escaping ((Progress) -> Void),
-               completion: @escaping (Result<Void, Error>) -> Void)
+               completion: @escaping (Result<Void, FileError>) -> Void)
     {
         dispatchIO.write(offset: offset, data: data, progressHandler: progressHandler, completion: completion)
     }
@@ -122,7 +122,7 @@ extension RandomAccessFile {
     public
     func write(offset: Int,
                data: Data,
-               completion: @escaping (Result<Void, Error>) -> Void)
+               completion: @escaping (Result<Void, FileError>) -> Void)
     {
         dispatchIO.write(offset: offset, data: data, progressHandler: { _ in }, completion: completion)
     }

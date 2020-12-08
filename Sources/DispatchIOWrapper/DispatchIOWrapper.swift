@@ -57,15 +57,15 @@ struct Permission: OptionSet {
 
 public
 final class DispatchIOWrapper {
-    public typealias Error = PosixError
+    public typealias FileError = PosixError
     public typealias StreamType = DispatchIO.StreamType
 
     internal let dispatchIO: DispatchIO
     internal let dispatchQueue: DispatchQueue
-    internal let cleanupHandler: (Result<Void, Error>) -> Void
+    internal let cleanupHandler: (Result<Void, FileError>) -> Void
 
     private
-    init(dispatchIO: DispatchIO, queue: DispatchQueue, cleanupHandler: @escaping (Result<Void, Error>) -> Void) {
+    init(dispatchIO: DispatchIO, queue: DispatchQueue, cleanupHandler: @escaping (Result<Void, FileError>) -> Void) {
         self.dispatchIO = dispatchIO
         dispatchQueue = queue
         self.cleanupHandler = cleanupHandler
@@ -79,14 +79,14 @@ extension DispatchIOWrapper {
           options: FileOpenOption = [.createIfNotExists, .readAndWrite],
           permission: Permission = [.userRead, .userWrite],
           queue: DispatchQueue,
-          cleanupHandler: @escaping (Result<Void, Error>) -> Void)
+          cleanupHandler: @escaping (Result<Void, FileError>) -> Void)
     {
         let oflag = options.rawValue
         let mode = permission.rawValue
 
         let io = filePath.withCString { (cStr) -> DispatchIO? in
             DispatchIO(type: type, path: cStr, oflag: oflag, mode: mode, queue: queue) { errorCode in
-                if let error = Error(rawValue: errorCode) {
+                if let error = FileError(rawValue: errorCode) {
                     cleanupHandler(.failure(error))
                 } else {
                     cleanupHandler(.success(()))
@@ -104,9 +104,9 @@ extension DispatchIOWrapper {
 
 extension DispatchIOWrapper {
     public
-    convenience init(type: StreamType, fileDescriptor: Int32, queue: DispatchQueue, cleanupHandler: @escaping (Result<Void, Error>) -> Void) {
+    convenience init(type: StreamType, fileDescriptor: Int32, queue: DispatchQueue, cleanupHandler: @escaping (Result<Void, FileError>) -> Void) {
         let dispatchIO = DispatchIO(type: type, fileDescriptor: fileDescriptor, queue: queue) { errorCode in
-            if let error = Error(rawValue: errorCode) {
+            if let error = FileError(rawValue: errorCode) {
                 cleanupHandler(.failure(error))
 
             } else {
@@ -118,10 +118,10 @@ extension DispatchIOWrapper {
     }
 
     public
-    convenience init(type: StreamType, io: DispatchIO, queue: DispatchQueue, cleanupHandler: @escaping (Result<Void, Error>) -> Void) {
+    convenience init(type: StreamType, io: DispatchIO, queue: DispatchQueue, cleanupHandler: @escaping (Result<Void, FileError>) -> Void) {
         let dispatchIO = DispatchIO(type: type, io: io, queue: queue) { errorCode in
 
-            if let error = Error(rawValue: errorCode) {
+            if let error = FileError(rawValue: errorCode) {
                 cleanupHandler(.failure(error))
 
             } else {
@@ -135,12 +135,12 @@ extension DispatchIOWrapper {
 
 extension DispatchIOWrapper {
     public
-    func channel(type: StreamType, queue _: DispatchQueue, cleanupHandler: @escaping (Result<Void, Error>) -> Void) -> DispatchIOWrapper {
+    func channel(type: StreamType, queue _: DispatchQueue, cleanupHandler: @escaping (Result<Void, FileError>) -> Void) -> DispatchIOWrapper {
         DispatchIOWrapper(type: type, io: dispatchIO, queue: dispatchQueue, cleanupHandler: cleanupHandler)
     }
 
     public
-    func channel(type: StreamType, cleanupHandler: @escaping (Result<Void, Error>) -> Void) -> DispatchIOWrapper {
+    func channel(type: StreamType, cleanupHandler: @escaping (Result<Void, FileError>) -> Void) -> DispatchIOWrapper {
         channel(type: type, queue: dispatchQueue, cleanupHandler: cleanupHandler)
     }
 
@@ -165,7 +165,7 @@ extension DispatchIOWrapper {
     func read(offset: Int,
               length: Int = Int(bitPattern: Dispatch.SIZE_MAX),
               progressHandler: @escaping ((Progress) -> Void),
-              completion: @escaping (Result<Data, Error>) -> Void)
+              completion: @escaping (Result<Data, FileError>) -> Void)
     {
         let totalUnitCount = Int64(length)
         let progress = Progress(totalUnitCount: totalUnitCount)
@@ -179,7 +179,7 @@ extension DispatchIOWrapper {
 
         dispatchIO.read(offset: off_t(offset), length: length, queue: dispatchQueue, ioHandler: { done, readedData, errorCode in
 
-            if let error = Error(rawValue: errorCode) {
+            if let error = FileError(rawValue: errorCode) {
                 progress.cancel()
                 progressHandler(progress)
 
@@ -212,7 +212,7 @@ extension DispatchIOWrapper {
     public
     func write(offset: Int, data: Data,
                progressHandler: @escaping ((Progress) -> Void),
-               completion: @escaping (Result<Void, Error>) -> Void)
+               completion: @escaping (Result<Void, FileError>) -> Void)
     {
         let totalUnitCount = Int64(data.count)
         let progress = Progress(totalUnitCount: totalUnitCount)
@@ -236,7 +236,7 @@ extension DispatchIOWrapper {
                          queue: dispatchQueue,
                          ioHandler: { done, writedData, errorCode in
 
-                             if let error = Error(rawValue: errorCode) {
+                             if let error = FileError(rawValue: errorCode) {
                                  progress.cancel()
                                  progressHandler(progress)
 
